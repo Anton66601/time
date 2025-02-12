@@ -1,0 +1,46 @@
+# Ignorar node_modules (evita subir dependencias innecesarias)
+node_modules/
+
+# Ignorar dependencias de Next.js que se generan automáticamente
+.next/
+.vercel/
+out/
+
+# Archivos de entorno (contienen credenciales y configuraciones sensibles)
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# Archivos de logs y caché
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+logs/
+*.gz
+
+# Archivos de construcción y distribución
+dist/
+build/
+
+# Ignorar configuración de IDEs y editores de código
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Archivos de TypeScript generados
+*.tsbuildinfo
+
+# Evitar subir archivos de configuración de Git
+.git/
+
+# Evitar subir dependencias de SWC (pueden ser grandes)
+apps/web/node_modules/@next/swc-*/
+
+# Evitar subir archivos de caché de ESLint o Prettier (si usas)
+.eslintcache
+.prettiercache
