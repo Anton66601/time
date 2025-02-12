@@ -1,0 +1,9 @@
+# Node.js
+node_modules/
+dist/
+.env
+.next/
+out/
+*.log
+.vscode/
+.DS_Store
