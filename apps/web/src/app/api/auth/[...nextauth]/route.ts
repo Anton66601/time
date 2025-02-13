@@ -6,9 +6,6 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { JWT } from "next-auth/jwt"; // Importamos el tipo correcto para token
 
 const authOptions: NextAuthOptions = {
-  session: {
-    strategy: "jwt",
-  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -45,25 +42,6 @@ const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }: { token: JWT; user?: any }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.permissions = user.permissions;
-      }
-      return token;
-    },
-    async session({ session, token }: { session: any; token: JWT }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.permissions = token.permissions as string[];
-      }
-      return session;
-    },
-  },
-  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);

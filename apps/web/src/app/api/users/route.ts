@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 // GET: Retrieve all users
 export async function GET() {
@@ -30,24 +31,46 @@ export async function POST(req: Request) {
     const { name, email, password, roleId, permissions } = body;
 
     if (!name || !email || !password || !roleId) {
-      return NextResponse.json({ message: "Name, email, password, and role ID are required" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Name, email, password, and role ID are required" },
+        { status: 400 }
+      );
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
 
     if (existingUser) {
-      return NextResponse.json({ message: "User with this email already exists" }, { status: 409 });
+      return NextResponse.json(
+        { message: "User with this email already exists" },
+        { status: 409 }
+      );
     }
 
+    // Encriptar la contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const newUser = await prisma.user.create({
-      data: { name, email, password, roleId, permissions: permissions || [] },
+      data: {
+        name,
+        email,
+        password: hashedPassword, // Usamos la contraseña encriptada
+        roleId,
+        permissions: permissions || [],
+      },
     });
 
     console.log("New user created:", newUser);
-    return NextResponse.json({ message: "User created successfully", data: newUser }, { status: 201 });
+    return NextResponse.json(
+      { message: "User created successfully", data: newUser },
+      { status: 201 }
+    );
   } catch (error: unknown) {
     console.error("Error creating user:", error);
-    return NextResponse.json({ message: "Error creating user", error: String(error) }, { status: 500 });
+    return NextResponse.json(
+      { message: "Error creating user", error: String(error) },
+      { status: 500 }
+    );
   }
 }
 
