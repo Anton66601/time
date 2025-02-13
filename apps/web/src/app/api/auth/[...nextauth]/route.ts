@@ -3,9 +3,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { JWT } from "next-auth/jwt"; // Importamos el tipo correcto para token
 
 const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -42,8 +42,17 @@ const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) token.id = user.id;
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) session.user.id = token.id as string;
+      return session;
+    },
+  },
 };
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
-
