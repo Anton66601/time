@@ -1,4 +1,3 @@
-// apps/web/src/app/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 
-import { ThemeToggle } from "@/components/theme-toggle";
+import Header from "@/components/header";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -35,14 +34,13 @@ const formSchema = z.object({
 });
 
 export default function Home() {
-  // Estado de autenticación
   const { data: session, status } = useSession();
   const router = useRouter();
   const { addToast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showForm, setShowForm] = useState(false);
+  const [eventDetails, setEventDetails] = useState<any>(null);
 
-  // Configuración de react-hook-form con validaciones
   const {
     register,
     handleSubmit,
@@ -52,40 +50,44 @@ export default function Home() {
     resolver: zodResolver(formSchema),
   });
 
-  // Redirección si el usuario no está autenticado
   useEffect(() => {
     if (status !== "loading" && !session) {
-      console.log("No session found, redirigiendo a /login");
       router.push("/login");
     }
   }, [session, status, router]);
 
-  // Muestra mensaje de carga mientras se verifica la sesión
-  if (status === "loading") {
-    return <div className="text-center">Cargando sesión...</div>;
-  }
-
-  // Evita renderizar si el usuario no está autenticado
-  if (!session) {
-    return (
-      <div className="text-center">
-        No hay sesión activa. Redirigiendo al login...
-      </div>
-    );
-  }
-
-  // Manejo del envío del formulario
-  const onSubmit = async (data: any) => {
-    if (!selectedDate) {
-      addToast({
-        title: "Error",
-        description: "Por favor, selecciona una fecha antes de enviar el formulario.",
-        variant: "destructive",
-      });
-      return;
+  useEffect(() => {
+    if (selectedDate) {
+      fetchEventDetails(selectedDate);
+    } else {
+      setEventDetails(null);
+      setShowForm(false);
     }
+  }, [selectedDate]);
 
-    console.log("Enviando datos del evento:", data, selectedDate);
+  if (status === "loading") return <div className="text-center">Cargando sesión...</div>;
+  if (!session) return null;
+
+  const fetchEventDetails = async (date: Date) => {
+    const formattedDate = date.toISOString().split("T")[0];
+    try {
+      const response = await fetch(`/api/events?date=${formattedDate}`);
+      const result = await response.json();
+      if (response.ok && result.data) {
+        setEventDetails(result.data);
+        setShowForm(false);
+      } else {
+        setEventDetails(null);
+      }
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      setEventDetails(null);
+    }
+  };
+
+  const onSubmit = async (data: any) => {
+    if (!selectedDate) return;
+
     const eventData = {
       userId: session.user.id,
       title: `Cita para ${data.name}`,
@@ -96,17 +98,12 @@ export default function Home() {
     try {
       const response = await fetch("/api/events", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
       });
 
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Error al crear el evento");
-      }
+      if (!response.ok) throw new Error(result.message || "Error al crear el evento");
 
       addToast({
         title: "Evento Creado",
@@ -115,9 +112,9 @@ export default function Home() {
 
       reset();
       setShowForm(false);
-      setSelectedDate(undefined);
+      fetchEventDetails(selectedDate);
     } catch (error: any) {
-      console.error("Error creando el evento:", error);
+      console.error("Error creating event:", error);
       addToast({
         title: "Error",
         description: error.message || "Error al crear el evento",
@@ -128,23 +125,14 @@ export default function Home() {
 
   return (
     <ToastProvider>
-      <main className="flex min-h-screen items-center justify-center flex-col gap-6 bg-background text-foreground p-6">
-        {/* Encabezado con el botón de cambio de tema */}
-        <div className="flex justify-between items-center w-full max-w-2xl">
-          <h1 className="text-2xl font-bold">Modo Oscuro con ShadCN</h1>
-          <ThemeToggle />
-        </div>
-
-        {/* Sección de Calendar */}
+      <Header />
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 bg-background text-foreground p-6">
         <div className="w-full max-w-2xl p-4 border rounded-lg shadow-md bg-card">
           <h2 className="text-lg font-semibold mb-2">Selecciona una fecha:</h2>
           <Calendar
             mode="single"
             selected={selectedDate}
-            onSelect={(date) => {
-              setSelectedDate(date);
-              setShowForm(true);
-            }}
+            onSelect={(date) => setSelectedDate(date)}
             className="rounded-md border"
           />
           {selectedDate && (
@@ -152,51 +140,51 @@ export default function Home() {
               Fecha seleccionada: <strong>{format(selectedDate, "PPP")}</strong>
             </p>
           )}
-        </div>
 
-        {/* Formulario para agendar cita */}
-        {showForm && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="w-full max-w-2xl mt-4">Agendar Cita</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Agendar Cita</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Completa el formulario para agendar tu cita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Nombre</Label>
-                  <Input {...register("name")} id="name" placeholder="Tu nombre" />
-                  {errors.name && (
-                    <p className="text-red-500 text-sm">{errors.name.message?.toString()}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="email">Correo Electrónico</Label>
-                  <Input {...register("email")} id="email" type="email" placeholder="correo@example.com" />
-                  {errors.email && (
-                    <p className="text-red-500 text-sm">{errors.email.message?.toString()}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="reason">Motivo de la cita</Label>
-                  <Input {...register("reason")} id="reason" placeholder="Ej. Consulta médica" />
-                  {errors.reason && (
-                    <p className="text-red-500 text-sm">{errors.reason.message?.toString()}</p>
-                  )}
-                </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <Button type="submit">Confirmar Cita</Button>
-                </AlertDialogFooter>
-              </form>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+          {eventDetails ? (
+            <div className="mt-4 p-4 border rounded-lg bg-gray-100 dark:bg-gray-800">
+              <h3 className="text-lg font-semibold">Detalles del Evento</h3>
+              <p><strong>Título:</strong> {eventDetails.title}</p>
+              <p><strong>Motivo:</strong> {eventDetails.description}</p>
+              <p><strong>Usuario:</strong> {eventDetails.user?.name}</p>
+            </div>
+          ) : selectedDate ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button className="w-full max-w-2xl mt-4">Crear Evento</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Crear Nuevo Evento</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Completa el formulario para agendar un evento en esta fecha.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Nombre</Label>
+                    <Input {...register("name")} id="name" placeholder="Tu nombre" />
+                    {errors.name && <p className="text-red-500 text-sm">{errors.name.message?.toString()}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Correo Electrónico</Label>
+                    <Input {...register("email")} id="email" type="email" placeholder="correo@example.com" />
+                    {errors.email && <p className="text-red-500 text-sm">{errors.email.message?.toString()}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="reason">Motivo de la cita</Label>
+                    <Input {...register("reason")} id="reason" placeholder="Ej. Consulta médica" />
+                    {errors.reason && <p className="text-red-500 text-sm">{errors.reason.message?.toString()}</p>}
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <Button type="submit">Confirmar Cita</Button>
+                  </AlertDialogFooter>
+                </form>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
+        </div>
       </main>
     </ToastProvider>
   );
