@@ -70,15 +70,6 @@ export default function Home() {
           <ThemeToggle />
         </div>
 
-        {/* Alerta de información */}
-        <Alert className="max-w-2xl">
-          <Info className="h-5 w-5" />
-          <AlertTitle>¡Bienvenido a ShadCN!</AlertTitle>
-          <AlertDescription>
-            Aquí puedes encontrar componentes accesibles y personalizables para tu aplicación en Next.js.
-          </AlertDescription>
-        </Alert>
-
         {/* Sección de Calendar */}
         <div className="w-full max-w-2xl p-4 border rounded-lg shadow-md bg-card">
           <h2 className="text-lg font-semibold mb-2">Selecciona una fecha:</h2>
@@ -139,30 +130,6 @@ export default function Home() {
             </AlertDialogContent>
           </AlertDialog>
         )}
-
-        {/* Sección de Accordion */}
-        <div className="w-full max-w-2xl">
-          <Accordion type="single" collapsible>
-            <AccordionItem value="item-1">
-              <AccordionTrigger>¿Qué es ShadCN?</AccordionTrigger>
-              <AccordionContent>
-                ShadCN es una colección de componentes accesibles y altamente personalizables para React y Next.js.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-2">
-              <AccordionTrigger>¿Por qué usarlo?</AccordionTrigger>
-              <AccordionContent>
-                Ofrece integración con Tailwind CSS, accesibilidad y flexibilidad para crear interfaces modernas.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-3">
-              <AccordionTrigger>¿Cómo instalar componentes?</AccordionTrigger>
-              <AccordionContent>
-                Usa el comando <code>npx shadcn add [componente]</code> para instalar nuevos componentes.
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
       </main>
     </ToastProvider>
   );
