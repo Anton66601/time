@@ -1,8 +1,9 @@
 // apps/web/src/app/page.tsx
-"use client"; // Aseguramos que sea un Client Component
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,9 @@ const formSchema = z.object({
 });
 
 export default function Home() {
-  const { data: session } = useSession();
+  // Estado de autenticación
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const { addToast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showForm, setShowForm] = useState(false);
@@ -49,7 +52,29 @@ export default function Home() {
     resolver: zodResolver(formSchema),
   });
 
-  // Manejador de envío del formulario que envía la petición a la API
+  // Redirección si el usuario no está autenticado
+  useEffect(() => {
+    if (status !== "loading" && !session) {
+      console.log("No session found, redirigiendo a /login");
+      router.push("/login");
+    }
+  }, [session, status, router]);
+
+  // Muestra mensaje de carga mientras se verifica la sesión
+  if (status === "loading") {
+    return <div className="text-center">Cargando sesión...</div>;
+  }
+
+  // Evita renderizar si el usuario no está autenticado
+  if (!session) {
+    return (
+      <div className="text-center">
+        No hay sesión activa. Redirigiendo al login...
+      </div>
+    );
+  }
+
+  // Manejo del envío del formulario
   const onSubmit = async (data: any) => {
     if (!selectedDate) {
       addToast({
@@ -60,17 +85,7 @@ export default function Home() {
       return;
     }
 
-    // Validamos que el usuario esté autenticado y que tengamos su ID
-    if (!session?.user?.id) {
-      addToast({
-        title: "Error",
-        description: "Usuario no autenticado",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Construimos el objeto que enviaremos a la API
+    console.log("Enviando datos del evento:", data, selectedDate);
     const eventData = {
       userId: session.user.id,
       title: `Cita para ${data.name}`,
@@ -98,11 +113,11 @@ export default function Home() {
         description: `Tu cita ha sido agendada para el ${format(selectedDate, "PPP")}.`,
       });
 
-      // Reiniciar formulario y ocultar
       reset();
       setShowForm(false);
       setSelectedDate(undefined);
     } catch (error: any) {
+      console.error("Error creando el evento:", error);
       addToast({
         title: "Error",
         description: error.message || "Error al crear el evento",
@@ -139,7 +154,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* Formulario que se muestra al seleccionar una fecha */}
+        {/* Formulario para agendar cita */}
         {showForm && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -152,7 +167,6 @@ export default function Home() {
                   Completa el formulario para agendar tu cita.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
                   <Label htmlFor="name">Nombre</Label>
@@ -161,32 +175,20 @@ export default function Home() {
                     <p className="text-red-500 text-sm">{errors.name.message?.toString()}</p>
                   )}
                 </div>
-
                 <div>
                   <Label htmlFor="email">Correo Electrónico</Label>
-                  <Input
-                    {...register("email")}
-                    id="email"
-                    type="email"
-                    placeholder="correo@example.com"
-                  />
+                  <Input {...register("email")} id="email" type="email" placeholder="correo@example.com" />
                   {errors.email && (
                     <p className="text-red-500 text-sm">{errors.email.message?.toString()}</p>
                   )}
                 </div>
-
                 <div>
                   <Label htmlFor="reason">Motivo de la cita</Label>
-                  <Input
-                    {...register("reason")}
-                    id="reason"
-                    placeholder="Ej. Consulta médica"
-                  />
+                  <Input {...register("reason")} id="reason" placeholder="Ej. Consulta médica" />
                   {errors.reason && (
                     <p className="text-red-500 text-sm">{errors.reason.message?.toString()}</p>
                   )}
                 </div>
-
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <Button type="submit">Confirmar Cita</Button>
